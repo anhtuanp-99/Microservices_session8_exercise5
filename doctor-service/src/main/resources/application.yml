@@ -1,0 +1,49 @@
+spring:
+    application:
+        name: doctor-service
+    datasource:
+        url: jdbc:postgresql://localhost:5432/doctor_db
+        username: postgres
+        password: anhtuansql
+        driver-class-name: org.postgresql.Driver
+    jpa:
+        hibernate:
+            ddl-auto: update
+        show-sql: true
+
+server:
+    port: 8082
+
+eureka:
+    client:
+        service-url:
+            defaultZone: http://localhost:8761/eureka/
+        register-with-eureka: true
+        fetch-registry: true
+    instance:
+        prefer-ip-address: true
+
+# ===== RATE LIMITER =====
+resilience4j:
+    ratelimiter:
+        instances:
+            searchDoctorLimit:
+                limit-for-period: 5            # 5 request
+                limit-refresh-period: 10s      # trong 10 giây
+                timeout-duration: 0            # 0 = fail ngay, không chờ
+                register-health-indicator: true
+
+# ===== ACTUATOR =====
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health, info, ratelimiters, ratelimiterevents
+    endpoint:
+        health:
+            show-details: always
+
+# ===== LOGGING =====
+logging:
+    level:
+        io.github.resilience4j: DEBUG

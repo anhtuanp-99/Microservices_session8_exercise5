@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: appointment-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/appointment_db
+    username: postgres
+    password: anhtuansql
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: false
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
+            loggerLevel: basic
+
+server:
+  port: 8083
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+
+# ===== CIRCUIT BREAKER =====
+resilience4j:
+  circuitbreaker:
+    instances:
+      doctorServiceCB:
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        register-health-indicator: true
+
+  retry:
+    instances:
+      patientRetry:
+        max-attempts: 3                    # Tổng 3 lần (1 lần gốc + 2 lần retry)
+        wait-duration: 2s                  # Chờ 2s giữa các lần
+        retry-exceptions:
+          - feign.RetryableException       # Feign wrap ConnectException/Timeout
+          - java.net.ConnectException
+          - java.util.concurrent.TimeoutException
+        ignore-exceptions:
+          - com.medical.appointmentservice.exception.ResourceNotFoundException
+
+# ===== ACTUATOR =====
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, circuitbreakers, circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+# ===== LOGGING =====
+logging:
+  level:
+    io.github.resilience4j: DEBUG
+    com.medical.appointmentservice.client: DEBUG
